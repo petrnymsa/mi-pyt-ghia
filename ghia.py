@@ -3,23 +3,40 @@ import re
 import configparser
 import requests
 import json
+import os.path
 # --------------------------------------------------------------
+CHANGE_ADD = '+'
+CHANGE_REMOVE = '-'
+CHANGE_REMAIN = '='
+CHANGE_FALLBACK = '?'
+CHANGE_ERROR = 'x'
 
 
 class IssueChange:
     def __init__(self, change_type, name):
         self.change_type = change_type
         self.name = name
-        if(self.change_type == '+'):
+        if self.change_type == CHANGE_ADD:
             self.color = 'green'
-        elif(self.change_type == '-'):
+        elif self.change_type == CHANGE_REMOVE:
             self.color = 'red'
-        else:
+        elif self.change_type == CHANGE_REMAIN:
             self.color = 'blue'
+        elif self.change_type == CHANGE_FALLBACK:
+            self.color = 'yellow'
+        elif self.change_type == CHANGE_ERROR:
+            self.color = 'red'
 
     def echo(self):
-        click.secho(f'   {self.change_type}', fg=self.color, nl=False)
-        click.echo(f' {self.name}')
+        if self.change_type == CHANGE_FALLBACK:
+            click.secho(f'   FALLBACK', fg=self.color, nl=False)
+            click.echo(f': {self.name}')
+        elif self.change_type == CHANGE_ERROR:
+            click.secho(f'   ERROR', fg=self.color, nl=False, err=True)
+            click.echo(f': {self.name}', err=True)
+        else:
+            click.secho(f'   {self.change_type}', fg=self.color, nl=False)
+            click.echo(f' {self.name}')
 # --------------------------------------------------------------
 
 
@@ -34,11 +51,12 @@ class Issue:
         self.freezed = []
 
     def append(self, names):
-        changes = list(map(lambda x: IssueChange('=', x), self.assignees))
+        changes = list(map(lambda x: IssueChange(
+            CHANGE_REMAIN, x), self.assignees))
         for name in names:
             self.assignees.append(name)
             self.freezed.append(name)
-            changes.append(IssueChange('+', name))
+            changes.append(IssueChange(CHANGE_ADD, name))
         return changes
 
     def clear_add_reapply(self, names):
@@ -47,17 +65,17 @@ class Issue:
         # reapply freezed
         for a in self.assignees:
             if a in self.freezed or a in names:  # remain
-                changes.append(IssueChange('=', a))
+                changes.append(IssueChange(CHANGE_REMAIN, a))
                 tmp.append(a)
             else:  # name was deleted
-                changes.append(IssueChange('-', a))
+                changes.append(IssueChange(CHANGE_REMOVE, a))
 
         self.assignees = tmp
         names = list(filter(lambda x: x not in self.assignees, names))
         for name in names:
             self.assignees.append(name)
             self.freezed.append(name)
-            changes.append(IssueChange('+', name))
+            changes.append(IssueChange(CHANGE_ADD, name))
 
         return changes
 
@@ -65,13 +83,20 @@ class Issue:
         changes = []
         if self.assignees:
             for a in self.assignees:
-                changes.append(IssueChange('=', a))
+                changes.append(IssueChange(CHANGE_REMAIN, a))
         else:
             for a in self.assignees:
-                changes.append(IssueChange('-', a))
+                changes.append(IssueChange(CHANGE_REMOVE, a))
             self.assignees = [name]
-            changes.append(IssueChange('+', name))
+            changes.append(IssueChange(CHANGE_ADD, name))
         return changes
+
+    def apply_label(self, label):
+        if label not in self.labels:
+            self.labels.append(label)
+            return [IssueChange(CHANGE_FALLBACK, f'added label "{label}"')]
+        else:
+            return [IssueChange(CHANGE_FALLBACK, f'already has label "{label}"')]
 # --------------------------------------------------------------
 
 
@@ -123,7 +148,7 @@ class RuleSet:
 # --------------------------------------------------------------
 
 
-class GitHubApi:
+class GitHubIssueAssigner:
     def __init__(self, token, repo, strategy):
         self.strategy = strategy
         self.token = token
@@ -138,9 +163,8 @@ class GitHubApi:
 
     def load_issues(self):
         try:
-            # todo replace with reposlug
             r = self.session.get(
-                'http://api.github.com/repos/mi-pyt-ghia/petrnymsa/issues?state=open')
+                f'http://api.github.com/repos/{self.repo}/issues?state=open')
             r.raise_for_status()
 
             loaded_issues = json.loads(r.text)
@@ -149,22 +173,29 @@ class GitHubApi:
                 labels = list(map(lambda x: x['name'], issue['labels']))
                 assignees = list(map(lambda x: x['login'], issue['assignees']))
                 self.issues.append(Issue(
-                    issue['number'], issue['url'], issue['title'], issue['body'], labels, assignees))
+                    issue['number'], issue['html_url'], issue['title'], issue['body'], labels, assignees))
+
         except:
-            click.secho('ERROR', fg='red', bold=True, nl=False)
-            click.echo(f': Could not list issues for repository {self.repo}')
-            #    'Using fake data. TODO REMOVE IN PRODUCTION :) I am sitting in the train without wifi :( ')
+            click.secho('ERROR', fg='red', bold=True, nl=False, err=True)
+            click.echo(
+                f': Could not list issues for repository {self.repo}', err=True)
+            exit(10)
             # for i in range(1, 3):
-            #    self.issues.append(Issue(i, f'https://github.com/fake/issue#{i}', 'Dummy', 'Dummy body', [], []))
+            #     self.issues.append(
+            #         Issue(i, f'https://github.com/fake/issue#{i}', 'Dummy', 'Dummy body', [], []))
             # self.issues.append(Issue(100, f'https://github.com/fake/issue#123',
-            #                         'Network', 'Network body', [], ['joe', 'noob']))
+            #                          'Netwfsdafdsafork', 'Netasdfaswork body', [], ['joe', 'noob']))
 
     def patch_issue(self, issue: Issue):
         # todo call PATCH with changes within issue
         encoded = json.dumps(issue.__dict__)
         pass
 
-    def apply_strategy(self, issue: Issue, owners):
+    def apply_strategy(self, issue: Issue, owners, fallback):
+        # apply fallback if needed
+       # if not issue.assignees and not owners and fallback is not None:
+       #     return issue.apply_label(fallback)
+
         if self.strategy == 'append':
             return issue.append(owners)
         elif self.strategy == 'set':
@@ -174,7 +205,13 @@ class GitHubApi:
         else:
             raise Exception(f'Unknown strategy {self.strategy}')
 
-    def proces_issues(self, rules, fallback):
+    def check_fallback(self, issue: Issue, fallback):
+         # apply fallback if needed
+        if not issue.assignees and fallback is not None:
+            return issue.apply_label(fallback)
+        return []
+
+    def proces_issues(self, rules, fallback, dry_run: bool):
         for issue in self.issues:
             changes = []
             applies = []
@@ -182,8 +219,12 @@ class GitHubApi:
                 if rule.validate(issue):
                     applies.append(rule.owner)
 
-            changes = self.apply_strategy(issue, applies)
-            changes.sort(key=lambda x: x.name)
+            changes = self.apply_strategy(issue, applies, fallback)
+            # todo apply it via api
+            c = self.check_fallback(issue, fallback)
+            for i in c:
+                changes.append(i)
+            changes.sort(key=lambda x: x.name.lower())
             print_result(self.repo, issue.number, issue.url, changes)
 # --------------------------------------------------------------
 
@@ -191,7 +232,7 @@ class GitHubApi:
 def print_result(reposlug: str, issue_id: str, url: str, changes=[], fallback=False):
     click.echo('-> ', nl=False)
     click.secho(f'{reposlug}#{issue_id}', bold=True, nl=False)
-    click.secho(f' {url}')
+    click.secho(f' ({url})')
     for change in changes:
         change.echo()
     if fallback:
@@ -201,7 +242,11 @@ def print_result(reposlug: str, issue_id: str, url: str, changes=[], fallback=Fa
 
 def read_auth(auth_path):
     parser = configparser.ConfigParser()
+    parser.optionxform = str  # ! preserve case sensitive
     parser.read(auth_path)
+
+    if not parser.has_option('github', 'token'):
+        raise Exception('token option missing')
 
     github_section = parser.items('github')
     return github_section[0][1]
@@ -209,10 +254,12 @@ def read_auth(auth_path):
 
 def read_rules(rules_path):
     parser = configparser.ConfigParser()
+    parser.optionxform = str  # ! preserve case sensitive
     parser.read(rules_path)
     patterns = parser.items('patterns')
     rules = []
     for pat in patterns:
+        print(f'Processing rule for {pat[0]}')
         rule_set = RuleSet(pat[0])
 
         lines = list(filter(None, pat[1].split('\n')))
@@ -229,26 +276,56 @@ def read_rules(rules_path):
     rules.sort(key=lambda x: x.owner)
     return (rules, None)
 
+
+def validate_reposlug(ctx, param, value):
+    m = re.match('^[a-zA-Z,-]+/[a-zA-Z,-]+$', value)
+    if m is None:
+        raise click.BadParameter(f'not in owner/repository format')
+    return value
+
+
+def validate_config_auth(ctx, param, value):
+    if not os.path.exists(value):
+        raise click.BadParameter('incorrect configuration format')
+
+    try:
+        token = read_auth(value)
+        return token
+    except:
+        raise click.BadParameter('incorrect configuration format')
+
+
+def validate_config_rules(ctx, param, value):
+    if not os.path.exists(value):
+        raise click.BadParameter('incorrect configuration format')
+
+    try:
+        rules = read_rules(value)
+        return rules
+    except:
+        raise click.BadParameter('incorrect configuration format')
 # todo validate strategy
 # todo validate config-auth
 # todo validate config-rules
 # todo validate repo
 @click.command()
 @click.option('-s', '--strategy', type=click.Choice(['append', 'set', 'change'], case_sensitive=False), default='append', show_default=True, help='How to handle assignment collisions.')
-@click.option('-a', '--config-auth', metavar='FILENAME', required=True, help='File with authorization configuration.')
-@click.option('-r', '--config-rules', metavar='FILENAME', required=True, help='File with assignment rules configuration.')
+@click.option('-a', '--config-auth', callback=validate_config_auth, metavar='FILENAME', required=True, help='File with authorization configuration.')
+@click.option('-r', '--config-rules', callback=validate_config_rules, metavar='FILENAME', required=True, help='File with assignment rules configuration.')
 @click.option('-d', '--dry-run', is_flag=True, help='Run without making any changes.')
-@click.argument('reposlug')
+@click.argument('reposlug', callback=validate_reposlug)
 def main(dry_run, strategy, config_auth, config_rules, reposlug):
     '''CLI tool for automatic issue assigning of GitHub issues'''
-
-    token = read_auth('credentials.cfg')  # todo use parameter
-    (rules, fallback) = read_rules('rules.cfg')
+    (rules, fallback) = config_rules
+    ghia = GitHubIssueAssigner(config_auth, reposlug, strategy)
+    ghia.load_issues()
+    ghia.proces_issues(rules, fallback, dry_run)
 
 
 if __name__ == '__main__':
-    (rules, fallback) = read_rules('rules.cfg')
-    token = read_auth('credentials.cfg')
-    api = GitHubApi(token, 'mi-pyt-ghia/petrnymsa', 'append')
-    api.load_issues()
-    api.proces_issues(rules, fallback)
+    main()
+    # (rules, fallback) = read_rules('rules.cfg')
+    # token = read_auth('credentials.cfg')
+    # api = GitHubApi(token, 'mi-pyt-ghia/petrnymsa', 'append')
+    # api.load_issues()
+    # api.proces_issues(rules, fallback)
