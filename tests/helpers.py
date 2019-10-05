@@ -53,12 +53,14 @@ try:
     token = os.environ['GITHUB_TOKEN']
     repo = f'mi-pyt-ghia/{user}'
 except KeyError:
-    raise RuntimeError('You must set GITHUB_USER and GITHUB_TOKEN environ vars')
+    raise RuntimeError(
+        'You must set GITHUB_USER and GITHUB_TOKEN environ vars')
 else:
     config('auth.real.cfg').write_text(
         config('auth.fff.cfg').read_text().replace(40 * 'f', token)
     )
     atexit.register(config('auth.real.cfg').unlink)
+    atexit.register(config('auth.no-secret.real.cfg').unlink)
 
 
 def issue_assignees(repo, issue_number):
