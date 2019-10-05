@@ -4,29 +4,6 @@ import configparser
 import requests
 import json
 # --------------------------------------------------------------
-class Issue:
-    def __init__(self,number,url, title, body, labels, assignees):
-        self.number = number
-        self.url = url
-        self.title = title
-        self.body = body
-        self.labels = labels
-        self.assignees = assignees
-        self.freezed = []
-    
-    def add_assignee(self, name):
-        self.assignees.append(name)
-        self.freezed.append(name)
-
-    def clear_add_reapply(self, name):
-        self.assignees = []
-        self._reapply_freezed()
-        self.add_assignee(name)
-
-    def _reapply_freezed(self):
-        for f in self.freezed:
-            self.assignees.append(f)
-# --------------------------------------------------------------    
 class IssueChange:
     def __init__(self, change_type, name):
         self.change_type=change_type
@@ -41,6 +18,56 @@ class IssueChange:
     def echo(self):
         click.secho(f'   {self.change_type}', fg=self.color, nl=False)       
         click.echo(f' {self.name}')
+# --------------------------------------------------------------
+class Issue:
+    def __init__(self,number,url, title, body, labels, assignees):
+        self.number = number
+        self.url = url
+        self.title = title
+        self.body = body
+        self.labels = labels
+        self.assignees = assignees
+        self.freezed = []
+    
+    def add_assignee(self, name):        
+        changes = list(map(lambda x: IssueChange('=', x), self.assignees))
+        self.assignees.append(name)
+        self.freezed.append(name)
+        changes.append(IssueChange('+', name))
+        return changes
+
+    def clear_add_reapply(self, name):
+        changes = []
+        tmp = []
+        # reapply freezed
+        for a in self.assignees:
+            if a in self.freezed: # remain
+                changes.append(IssueChange('=', a))
+                tmp.append(a)                
+            else:  # name was deleted
+                changes.append(IssueChange('-', a))
+
+        self.assignees = tmp
+        self.assignees.append(name)
+        self.freezed.append(name)
+        changes.append(IssueChange('+', name))
+
+        return changes
+    
+    def replace(self, name):
+        changes = []
+        if self.assignees:
+            for a in self.assignees:
+                changes.append(IssueChange('=', a))
+        else:
+            for a in self.assignees:
+                changes.append(IssueChange('-', a))
+            self.assignees = [name]
+            changes.append(IssueChange('+', name))
+        return changes
+    # def _reapply_freezed(self):
+    #     for f in self.freezed:
+    #         self.assignees.append(f)
 # --------------------------------------------------------------
 class Rule:
     def __init__(self,scope, pattern):        
@@ -97,17 +124,25 @@ class GitHubApi:
     def req_token_auth(self, req):
         req.headers['Authorization'] = f'token {self.token}'
         return req
-    def load_issues(self):        
-        r = self.session.get('http://api.github.com/repos/mi-pyt-ghia/petrnymsa/issues?state=open') #todo replace with reposlug
-        r.raise_for_status()
-
-        loaded_issues = json.loads(r.text)
-        self.issues = []
-        for issue in loaded_issues:            
-            labels = list(map(lambda x: x['name'], issue['labels']))
-            assignees = list(map(lambda x: x['login'], issue['assignees']))
-            self.issues.append(Issue(issue['number'],issue['url'], issue['title'], issue['body'], labels, assignees))
     
+    def load_issues(self):       
+        try:
+            r = self.session.get('http://api.github.com/repos/mi-pyt-ghia/petrnymsa/issues?state=open') #todo replace with reposlug
+            r.raise_for_status()
+
+            loaded_issues = json.loads(r.text)
+            self.issues = []
+            for issue in loaded_issues:            
+                labels = list(map(lambda x: x['name'], issue['labels']))
+                assignees = list(map(lambda x: x['login'], issue['assignees']))
+                self.issues.append(Issue(issue['number'],issue['url'], issue['title'], issue['body'], labels, assignees))
+        except:
+            click.secho('ERROR', fg='red', bold=True, nl=False)
+            click.echo(f': Could not list issues for repository {self.repo}')
+            click.echo('Using fake data. TODO REMOVE IN PRODUCTION :) I am sitting in the train without wifi :( ')
+            #for i in range(1, 3):
+            #    self.issues.append(Issue(i, f'https://github.com/fake/issue#{i}', 'Dummy', 'Dummy body', [], [])) 
+            self.issues.append(Issue(100, f'https://github.com/fake/issue#123', 'Network', 'Network body', [], ['hroncok', 'noob'])) 
     def patch_issue(self, issue:Issue):
         #todo call PATCH with changes within issue
         encoded = json.dumps(issue.__dict__)
@@ -115,22 +150,23 @@ class GitHubApi:
     
     def apply_strategy(self, issue: Issue, owner):
         if self.strategy == 'append':
-            issue.add_assignee(owner)
+            return issue.add_assignee(owner)            
         elif self.strategy == 'set':
-            if not issue.assignees:
-                issue.assignees = [owner]            
+            return issue.replace(owner)    
         elif self.strategy == 'change':
-            issue.clear_add_reapply(owner)            
+            return issue.clear_add_reapply(owner)            
         else:
             raise Exception(f'Unknown strategy {self.strategy}')
-    def proces_issues(self, rules, fallback):      
-        print(f'Number of issues: {len(self.issues)}')  
+
+    def proces_issues(self, rules, fallback):   
         for issue in self.issues:
             changes = []
             for rule in rules:
                 if rule.validate(issue):
-                    change = self.apply_strategy(issue, rule.owner)
-                    changes.append(change)
+                    changes = self.apply_strategy(issue, rule.owner)
+                    # if current_changes:
+                    #     for c in current_changes:
+                    #         changes.append(c)
                 #else:
                 #    print(f'{issue.title}\trule {rule} not valid')
             print_result(self.repo, issue.number, issue.url, changes)
@@ -174,6 +210,10 @@ def read_rules(rules_path):
     rules.sort(key=lambda x: x.owner)  
     return (rules, None)
 
+#todo validate strategy
+#todo validate config-auth
+#todo validate config-rules
+#todo validate repo
 @click.command()
 @click.option('-s', '--strategy', type=click.Choice(['append', 'set', 'change'], case_sensitive=False),default='append',show_default=True, help='How to handle assignment collisions.')
 @click.option('-a', '--config-auth',metavar='FILENAME', required=True, help='File with authorization configuration.')
@@ -182,8 +222,7 @@ def read_rules(rules_path):
 @click.argument('reposlug')
 def main(dry_run,strategy, config_auth, config_rules, reposlug):
     '''CLI tool for automatic issue assigning of GitHub issues'''
-    print_result(reposlug, 'http://fakeurl', [IssueChange('+','petr'), IssueChange('-', 'martin'), IssueChange('=', 'mirek')], fallback=True)
-
+    
     token = read_auth('credentials.cfg') #todo use parameter
     (rules, fallback) = read_rules('rules.cfg')
 
@@ -192,6 +231,6 @@ def main(dry_run,strategy, config_auth, config_rules, reposlug):
 if __name__ == '__main__':
     (rules, fallback) = read_rules('rules.cfg')
     token = read_auth('credentials.cfg')
-    api = GitHubApi(token, 'mi-pyt-ghia/petrnymsa', 'append')
+    api = GitHubApi(token, 'mi-pyt-ghia/petrnymsa', 'change')
     api.load_issues()
     api.proces_issues(rules, fallback)
