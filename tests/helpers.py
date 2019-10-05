@@ -59,6 +59,9 @@ else:
     config('auth.real.cfg').write_text(
         config('auth.fff.cfg').read_text().replace(40 * 'f', token)
     )
+    config('auth.no-secret.real.cfg').write_text(
+        config('auth.no-secret.cfg').read_text().replace(40 * 'f', token)
+    )
     atexit.register(config('auth.real.cfg').unlink)
     atexit.register(config('auth.no-secret.real.cfg').unlink)
 
