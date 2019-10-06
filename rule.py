@@ -8,7 +8,7 @@ class Rule:
         self.pattern = pattern
 
     def _validate(self, input_text):
-        return re.search(self.pattern, input_text) is not None
+        return re.search(self.pattern, input_text,  re.IGNORECASE) is not None
 
     def validate(self, issue: Issue):
         if self.scope == 'title':

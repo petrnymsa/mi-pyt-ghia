@@ -1,7 +1,7 @@
 import requests
 import click
 import json
-from issue import Issue, IssueChange
+from issue import *
 from rule import Rule, RuleSet
 
 
@@ -18,35 +18,46 @@ class GitHubIssueAssigner:
         req.headers['Authorization'] = f'token {self.token}'
         return req
 
+    def parse_issues(self, response):
+        loaded_issues = json.loads(response)
+
+        for issue in loaded_issues:
+            labels = list(map(lambda x: x['name'], issue['labels']))
+            assignees = list(
+                map(lambda x: x['login'], issue['assignees']))
+            self.issues.append(Issue(
+                issue['number'], issue['html_url'], issue['title'], issue['body'], labels, assignees))
+
     def load_issues(self):
         try:
-            r = self.session.get(
-                f'http://api.github.com/repos/{self.repo}/issues?state=open')
+            self.issues = []
+            url = f'https://api.github.com/repos/{self.repo}/issues?state=open'
+            r = self.session.get(url)
             r.raise_for_status()
 
-            loaded_issues = json.loads(r.text)
-            self.issues = []
-            for issue in loaded_issues:
-                labels = list(map(lambda x: x['name'], issue['labels']))
-                assignees = list(map(lambda x: x['login'], issue['assignees']))
-                self.issues.append(Issue(
-                    issue['number'], issue['html_url'], issue['title'], issue['body'], labels, assignees))
+            while 'next' in r.links:
+                self.parse_issues(r.text)
 
+                url = r.links['next']['url']
+                r = self.session.get(url)
+                r.raise_for_status()
+
+            self.parse_issues(r.text)
         except:
             click.secho('ERROR', fg='red', bold=True, nl=False, err=True)
             click.echo(
                 f': Could not list issues for repository {self.repo}', err=True)
             exit(10)
-            # for i in range(1, 3):
-            #     self.issues.append(
-            #         Issue(i, f'https://github.com/fake/issue#{i}', 'Dummy', 'Dummy body', [], []))
-            # self.issues.append(Issue(100, f'https://github.com/fake/issue#123',
-            #                          'Netwfsdafdsafork', 'Netasdfaswork body', [], ['joe', 'noob']))
 
     def patch_issue(self, issue: Issue):
-        # todo call PATCH with changes within issue
-        encoded = json.dumps(issue.__dict__)
-        pass
+        try:
+            encoded = json.dumps(issue.patched_dict())
+            r = self.session.patch(
+                f'https://api.github.com/repos/{self.repo}/issues/{issue.number}', data=encoded)
+            r.raise_for_status()
+            return True
+        except:
+            return False
 
     def apply_strategy(self, issue: Issue, owners, fallback):
         # apply fallback if needed
@@ -68,6 +79,9 @@ class GitHubIssueAssigner:
             return issue.apply_label(fallback)
         return []
 
+    def has_changes(self, changes):
+        return any(x.change_type != CHANGE_REMAIN for x in changes)
+
     def proces_issues(self, rules, fallback, dry_run: bool):
         for issue in self.issues:
             changes = []
@@ -77,11 +91,16 @@ class GitHubIssueAssigner:
                     applies.append(rule.owner)
 
             changes = self.apply_strategy(issue, applies, fallback)
-            # todo apply it via api
             c = self.check_fallback(issue, fallback)
             for i in c:
                 changes.append(i)
+
             changes.sort(key=lambda x: x.name.lower())
+
+            if not dry_run and self.has_changes(changes) and not self.patch_issue(issue):
+                changes = [IssueChange(
+                    CHANGE_ERROR, f'Could not update issue {self.repo}#{issue.number}')]
+
             self.print_result(issue.number, issue.url, changes)
 
     def print_result(self, issue_id: str, url: str, changes=[]):

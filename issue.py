@@ -49,9 +49,10 @@ class Issue:
         changes = list(map(lambda x: IssueChange(
             CHANGE_REMAIN, x), self.assignees))
         for name in names:
-            self.assignees.append(name)
-            self.freezed.append(name)
-            changes.append(IssueChange(CHANGE_ADD, name))
+            if name not in self.assignees:
+                self.assignees.append(name)
+                self.freezed.append(name)
+                changes.append(IssueChange(CHANGE_ADD, name))
         return changes
 
     def clear_add_reapply(self, names):
@@ -74,7 +75,7 @@ class Issue:
 
         return changes
 
-    def replace(self, name):
+    def replace(self, names):
         changes = []
         if self.assignees:
             for a in self.assignees:
@@ -82,8 +83,10 @@ class Issue:
         else:
             for a in self.assignees:
                 changes.append(IssueChange(CHANGE_REMOVE, a))
-            self.assignees = [name]
-            changes.append(IssueChange(CHANGE_ADD, name))
+            self.assignees = []
+            for name in names:
+                self.assignees.append(name)
+                changes.append(IssueChange(CHANGE_ADD, name))
         return changes
 
     def apply_label(self, label):
@@ -92,4 +95,9 @@ class Issue:
             return [IssueChange(CHANGE_FALLBACK, f'added label "{label}"')]
         else:
             return [IssueChange(CHANGE_FALLBACK, f'already has label "{label}"')]
-# --------------------------------------------------------------
+
+    def patched_dict(self):
+        return {
+            'labels': self.labels,
+            'assignees': self.assignees
+        }

@@ -28,7 +28,6 @@ def read_rules(rules_path):
     patterns = parser.items('patterns')
     rules = []
     for pat in patterns:
-        print(f'Processing rule for {pat[0]}')
         rule_set = RuleSet(pat[0])
 
         lines = list(filter(None, pat[1].split('\n')))
@@ -79,7 +78,7 @@ def validate_config_rules(ctx, param, value):
 @click.option('-s', '--strategy', type=click.Choice(['append', 'set', 'change'], case_sensitive=False), default='append', show_default=True, help='How to handle assignment collisions.')
 @click.option('-a', '--config-auth', callback=validate_config_auth, metavar='FILENAME', required=True, help='File with authorization configuration.')
 @click.option('-r', '--config-rules', callback=validate_config_rules, metavar='FILENAME', required=True, help='File with assignment rules configuration.')
-@click.option('-d', '--dry-run', is_flag=True, help='Run without making any changes.')
+@click.option('-d', '--dry-run', is_flag=True, default=False, help='Run without making any changes.')
 @click.argument('reposlug', callback=validate_reposlug)
 def main(dry_run, strategy, config_auth, config_rules, reposlug):
     '''CLI tool for automatic issue assigning of GitHub issues'''
