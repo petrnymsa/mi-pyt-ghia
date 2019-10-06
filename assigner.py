@@ -60,10 +60,6 @@ class GitHubIssueAssigner:
             return False
 
     def apply_strategy(self, issue: Issue, owners, fallback):
-        # apply fallback if needed
-       # if not issue.assignees and not owners and fallback is not None:
-       #     return issue.apply_label(fallback)
-
         if self.strategy == 'append':
             return issue.append(owners)
         elif self.strategy == 'set':
