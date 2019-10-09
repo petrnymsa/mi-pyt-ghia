@@ -1,0 +1,17 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>GHIA Web</title>
+</head>
+
+<body>
+    <h1>Requests got so far</h1>
+    {% for item in data %}
+    <p><a href="{{ item['html_url'] }}"> {{item['title']}}</a></li>
+        {% endfor %}
+</body>
+
+</html>
