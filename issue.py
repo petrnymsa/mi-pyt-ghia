@@ -101,3 +101,11 @@ class Issue:
             'labels': self.labels,
             'assignees': self.assignees
         }
+
+    @staticmethod
+    def from_json(json_data):
+        labels = list(map(lambda x: x['name'], json_data['labels']))
+        assignees = list(
+            map(lambda x: x['login'], json_data['assignees']))
+        return Issue(
+            json_data['number'], json_data['html_url'], json_data['title'], json_data['body'], labels, assignees)

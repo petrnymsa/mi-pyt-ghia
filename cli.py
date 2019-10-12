@@ -31,8 +31,7 @@ def validate_config_rules(ctx, param, value):
     try:
         rules = configreader.read_rules(value)
         return rules
-    except Exception as e:
-        print(e)
+    except:
         raise click.BadParameter('incorrect configuration format')
 
 

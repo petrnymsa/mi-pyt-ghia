@@ -21,12 +21,8 @@ class GitHubIssueAssigner:
     def parse_issues(self, response):
         loaded_issues = json.loads(response)
 
-        for issue in loaded_issues:
-            labels = list(map(lambda x: x['name'], issue['labels']))
-            assignees = list(
-                map(lambda x: x['login'], issue['assignees']))
-            self.issues.append(Issue(
-                issue['number'], issue['html_url'], issue['title'], issue['body'], labels, assignees))
+        for json_issue in loaded_issues:
+            self.issues.append(Issue.from_json(json_issue))
 
     def load_issues(self):
         try:

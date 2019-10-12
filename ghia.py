@@ -29,17 +29,15 @@ def get_username(token):
 def verify_signature(secret, payload, recieved_signature):
     signature = hmac.new(str.encode(secret),
                          payload, hashlib.sha1).hexdigest()
-    print(
-        f'Recieved signature: {recieved_signature.split("=")[1]} vs {signature}')
     return hmac.compare_digest(signature, recieved_signature.split('=')[1])
 
 
-def issue_from_json(text):
-    labels = list(map(lambda x: x['name'], text['labels']))
-    assignees = list(
-        map(lambda x: x['login'], text['assignees']))
-    return Issue(
-        text['number'], text['html_url'], text['title'], text['body'], labels, assignees)
+# def issue_from_json(text):
+#     labels = list(map(lambda x: x['name'], text['labels']))
+#     assignees = list(
+#         map(lambda x: x['login'], text['assignees']))
+#     return Issue(
+#         text['number'], text['html_url'], text['title'], text['body'], labels, assignees)
 
 
 def process_issue_post(req):
@@ -57,10 +55,9 @@ def process_issue_post(req):
         return '', 201
 
     issue_json = data['issue']
-    print(issue_json)
     repo = data['repository']['full_name']
     gh = GitHubIssueAssigner(auth[0], repo, 'append')
-    gh.issues = [issue_from_json(issue_json)]
+    gh.issues = [Issue.from_json(issue_json)]
     gh.proces_issues(
         flask.current_app.config['rules'], flask.current_app.config['fallback'], False)
     return '', 201

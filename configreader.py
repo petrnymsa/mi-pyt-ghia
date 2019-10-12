@@ -21,7 +21,6 @@ def read_auth(auth_path):
 
     if parser.has_option('github', 'secret'):
         secret = parser.get('github', 'secret')
-        print(f'secret: {secret}')
         return (token, secret)
 
     return (token, None)
