@@ -23,7 +23,7 @@ class Rule:
             raise Exception(f'Unknown scope {self.scope}')
 
     def __str__(self):
-        return f'{self.scope}:{self.pattern}'
+        return f'{self.scope}={self.pattern}'
 # --------------------------------------------------------------
 
 

@@ -18,7 +18,7 @@ def validate_config_auth(ctx, param, value):
         raise click.BadParameter('incorrect configuration format')
 
     try:
-        token = configreader.read_auth(value)
+        token = configreader.read_auth(value)[0]
         return token
     except:
         raise click.BadParameter('incorrect configuration format')
@@ -31,7 +31,8 @@ def validate_config_rules(ctx, param, value):
     try:
         rules = configreader.read_rules(value)
         return rules
-    except:
+    except Exception as e:
+        print(e)
         raise click.BadParameter('incorrect configuration format')
 
 
