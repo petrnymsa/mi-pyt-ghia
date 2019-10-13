@@ -114,8 +114,10 @@ def create_app(config=None):
 
             if ev == 'ping':
                 return process_ping(flask.request)
+            elif ev == 'issues':
+                return process_issue_post(flask.request)
 
-            return process_issue_post(flask.request)
+            return 'Not supported event', 400
         else:
             rules = flask.current_app.config['rules']
             issues = flask.current_app.config['issues']
