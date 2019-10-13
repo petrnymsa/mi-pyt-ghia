@@ -32,14 +32,6 @@ def verify_signature(secret, payload, recieved_signature):
     return hmac.compare_digest(signature, recieved_signature.split('=')[1])
 
 
-# def issue_from_json(text):
-#     labels = list(map(lambda x: x['name'], text['labels']))
-#     assignees = list(
-#         map(lambda x: x['login'], text['assignees']))
-#     return Issue(
-#         text['number'], text['html_url'], text['title'], text['body'], labels, assignees)
-
-
 def process_issue_post(req):
     auth = flask.current_app.config['auth']
     if 'X-Hub-Signature' not in req.headers or not verify_signature(auth[1], req.data, req.headers['X-Hub-Signature']):
@@ -68,7 +60,6 @@ def process_issue_post(req):
 
 def process_ping(req):
     secret = flask.current_app.config['auth'][1]
-
     if 'X-Hub-Signature' not in req.headers:
         return '', 200
     elif not verify_signature(secret, req.data, req.headers['X-Hub-Signature']):
@@ -99,6 +90,7 @@ def create_app(config=None):
     cfg_files = cfg.split(':')
 
     rules = []
+    app.config['fallback'] = None
     for f in cfg_files:
         auth = try_get_auth(f)
         if auth:
@@ -128,7 +120,8 @@ def create_app(config=None):
             rules = flask.current_app.config['rules']
             issues = flask.current_app.config['issues']
             user = flask.current_app.config['user']
-            return flask.render_template('index.html', rules=rules, user=user, issues=issues)
+            fallback = flask.current_app.config['fallback']
+            return flask.render_template('index.html', rules=rules, user=user, issues=issues, fallback=fallback)
 
     return app
 
