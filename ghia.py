@@ -55,9 +55,12 @@ def process_issue_post(req):
         return '', 201
 
     issue_json = data['issue']
+    issue = Issue.from_json(issue_json)
     repo = data['repository']['full_name']
+    flask.current_app.config['issues'].append((issue, data['action']))
+
     gh = GitHubIssueAssigner(auth[0], repo, 'append')
-    gh.issues = [Issue.from_json(issue_json)]
+    gh.issues = [issue]
     gh.proces_issues(
         flask.current_app.config['rules'], flask.current_app.config['fallback'], False)
     return '', 201
@@ -108,7 +111,7 @@ def create_app(config=None):
                 app.config['fallback'] = r[1]
 
     app.config['rules'] = rules
-
+    app.config['issues'] = []
     app.config['user'] = get_username(app.config['auth'][0])
 
     @app.route('/', methods=['GET', 'POST'])
@@ -123,8 +126,9 @@ def create_app(config=None):
             return process_issue_post(flask.request)
         else:
             rules = flask.current_app.config['rules']
+            issues = flask.current_app.config['issues']
             user = flask.current_app.config['user']
-            return flask.render_template('index.html', rules=rules, user=user)
+            return flask.render_template('index.html', rules=rules, user=user, issues=issues)
 
     return app
 
