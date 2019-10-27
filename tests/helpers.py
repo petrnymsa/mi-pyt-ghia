@@ -15,6 +15,7 @@ def run(line, entrypoint=False, **kwargs):
     else:
         print('$ python -m ghia', line)
         command = [sys.executable, '-m', 'ghia'] + shlex.split(line)
+
     return subprocess.run(command,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,

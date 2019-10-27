@@ -1,5 +1,5 @@
 import configparser
-from rule import RuleSet, Rule
+from .rule import RuleSet, Rule
 
 
 class Configuration:
@@ -49,7 +49,3 @@ def read_rules(rules_path):
         return (rules, parser.get('fallback', 'label'))
 
     return (rules, None)
-
-
-def read_from_multiple_files(files):
-    config = Configuration()

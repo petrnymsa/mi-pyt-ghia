@@ -1,20 +1,9 @@
-import configparser
-import os.path
-import os
-import click
-import re
-import json
 import flask
-import hashlib
-import hmac
 import requests
-# --------------------------------------------------------------
-from issue import Issue, IssueChange
-from rule import Rule, RuleSet
-from assigner import GitHubIssueAssigner
-import configreader
-import cli
-# --------------------------------------------------------------
+import json
+import hmac
+import hashlib
+from .issue import Issue, IssueChange
 
 
 def get_username(token):
@@ -126,7 +115,3 @@ def create_app(config=None):
             return flask.render_template('index.html', rules=rules, user=user, issues=issues, fallback=fallback)
 
     return app
-
-
-if __name__ == '__main__':
-    cli.run()

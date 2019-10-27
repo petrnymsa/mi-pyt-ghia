@@ -1,9 +1,9 @@
 import click
-import configreader
+import ghia.configreader
 import re
 import os
 
-from assigner import GitHubIssueAssigner
+from .assigner import GitHubIssueAssigner
 
 
 def validate_reposlug(ctx, param, value):
