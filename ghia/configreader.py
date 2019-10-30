@@ -1,4 +1,5 @@
 import configparser
+import os
 from .rule import RuleSet, Rule
 
 
@@ -12,8 +13,19 @@ class Configuration:
 def read_auth(auth_path):
     parser = configparser.ConfigParser()
     parser.optionxform = str  # ! preserve case sensitive
-    parser.read(auth_path)
+    dataset = parser.read(os.path.abspath(auth_path))
 
+    f = open(auth_path)
+    lines = f.readlines()
+    print(lines)
+    f.close()
+    print(f'isFIle: {os.path.exists(auth_path)}')
+
+    print(dataset)
+    if len(dataset) == 0:
+        raise Exception(f'Failed to read {auth_path}')
+
+    print(parser.sections())
     if not parser.has_option('github', 'token'):
         raise Exception('token option missing')
 

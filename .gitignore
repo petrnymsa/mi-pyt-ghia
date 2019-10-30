@@ -1,5 +1,8 @@
 __pycache__/
-__venv__/
+__venv*__/
 *.cfg
 .vscode/
 setup.ps1
+fix-setup.sh
+ghia_nymsapet.egg-info/
+dist/

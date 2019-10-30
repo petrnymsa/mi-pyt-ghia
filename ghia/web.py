@@ -2,8 +2,11 @@ import flask
 import requests
 import json
 import hmac
+import os
 import hashlib
 from .issue import Issue, IssueChange
+from .assigner import GitHubIssueAssigner
+import ghia.configreader as configreader
 
 
 def get_username(token):
@@ -58,10 +61,10 @@ def process_ping(req):
 
 
 def try_get_auth(file):
-    try:
-        return configreader.read_auth(file)
-    except:
-        return None
+   # try:
+    return configreader.read_auth(file)
+   # except:
+    #    return None
 
 
 def try_get_rules(file):
@@ -76,15 +79,20 @@ def create_app(config=None):
     app.logger.info('App initialized')
 
     cfg = os.environ.get('GHIA_CONFIG')
-    cfg_files = cfg.split(':')
+    app.logger.info(cfg)
+    cfg_files = cfg.split(';')
 
     rules = []
     app.config['fallback'] = None
+    app.config['auth'] = None
     for f in cfg_files:
+        app.logger.info(f'Reading {f}')
         auth = try_get_auth(f)
         if auth:
+            app.logger.info(f'Auth is {auth}')
             app.config['auth'] = auth
-
+        else:
+            app.logger.info(f'No auth')
         r = try_get_rules(f)
         if r:
             rules += r[0]
@@ -97,7 +105,7 @@ def create_app(config=None):
 
     @app.route('/', methods=['GET', 'POST'])
     def index():
-        # init()
+            # init()
         if flask.request.method == 'POST':
             ev = flask.request.headers['X-GitHub-Event']
 

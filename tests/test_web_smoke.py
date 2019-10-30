@@ -3,8 +3,8 @@ import importlib
 
 from helpers import env, config, user
 
-config_env = f'{config("auth.real.cfg")}:{config("rules.empty.cfg")}'
-config_env_nosecret = f'{config("auth.no-secret.real.cfg")}:{config("rules.empty.cfg")}'
+config_env = f'{config("auth.real.cfg")};{config("rules.empty.cfg")}'
+config_env_nosecret = f'{config("auth.no-secret.real.cfg")};{config("rules.empty.cfg")}'
 
 
 def _import_app():

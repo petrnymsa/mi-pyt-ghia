@@ -7,4 +7,4 @@ import re
 
 from .cli import run
 
-run()
+run(prog_name='ghia')
