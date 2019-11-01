@@ -12,7 +12,7 @@ setup(
     long_description=long_description,
     author='Petr Nymsa',
     author_email='nymsapet@fit.cvut.cz',
-    keywords='github, issue, assign',
+    keywords='github, issue, assign, automatic, label assign, rule based',
     license='MIT',
     url='https://github.com/mi-pyt-ghia/petrnymsa',
     packages=find_packages(),
