@@ -18,12 +18,15 @@ setup(
     packages=find_packages(),
     classifiers=[
         'Intended Audience :: Developers',
-        'License :: Public Domain',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Framework :: Flask',
+        'Environment :: Console',
+        'Environment :: Web Environment',
         'Topic :: Software Development :: Libraries',
     ],
     entry_points={
