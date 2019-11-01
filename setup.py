@@ -7,7 +7,7 @@ with open('README') as f:
 
 setup(
     name='ghia_nymsapet',
-    version='0.1.3',
+    version='0.3.0',
     description='GitHub issue assigner',
     long_description=long_description,
     author='Petr Nymsa',
