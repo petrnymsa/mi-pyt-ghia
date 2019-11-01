@@ -1,17 +1,17 @@
 from setuptools import setup, find_packages
 
 
-with open('README.txt') as f:
+with open('README') as f:
     long_description = ''.join(f.readlines())
 
 
 setup(
     name='ghia_nymsapet',
-    version='0.1',
-    description='GitHub issue assigned',
+    version='0.1.1',
+    description='GitHub issue assigner',
     long_description=long_description,
     author='Petr Nymsa',
-    author_email='ondrej@caletka.cz',
+    author_email='nymsapet@fit.cvut.cz',
     keywords='github, issue, assign',
     license='MIT',
     url='https://github.com/mi-pyt-ghia/petrnymsa',
