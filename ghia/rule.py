@@ -1,4 +1,4 @@
-from issue import Issue
+from .issue import Issue
 import re
 
 

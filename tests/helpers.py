@@ -8,9 +8,14 @@ import subprocess
 import sys
 
 
-def run(line, **kwargs):
-    print('$ python ghia.py', line)
-    command = [sys.executable, 'ghia.py'] + shlex.split(line)
+def run(line, entrypoint=False, **kwargs):
+    if entrypoint:
+        print('$ ghia', line)
+        command = ['ghia'] + shlex.split(line)
+    else:
+        print('$ python -m ghia', line)
+        command = [sys.executable, '-m', 'ghia'] + shlex.split(line)
+
     return subprocess.run(command,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE,
@@ -62,7 +67,7 @@ else:
     config('auth.no-secret.real.cfg').write_text(
         config('auth.no-secret.cfg').read_text().replace(40 * 'f', token)
     )
-    atexit.register(config('auth.real.cfg').unlink)
+   # atexit.register(config('auth.real.cfg').unlink)
     atexit.register(config('auth.no-secret.real.cfg').unlink)
 
 

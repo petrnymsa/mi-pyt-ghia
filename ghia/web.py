@@ -1,20 +1,12 @@
-import configparser
-import os.path
-import os
-import click
-import re
-import json
 import flask
-import hashlib
-import hmac
 import requests
-# --------------------------------------------------------------
-from issue import Issue, IssueChange
-from rule import Rule, RuleSet
-from assigner import GitHubIssueAssigner
-import configreader
-import cli
-# --------------------------------------------------------------
+import json
+import hmac
+import os
+import hashlib
+from .issue import Issue, IssueChange
+from .assigner import GitHubIssueAssigner
+import ghia.configreader as configreader
 
 
 def get_username(token):
@@ -87,15 +79,15 @@ def create_app(config=None):
     app.logger.info('App initialized')
 
     cfg = os.environ.get('GHIA_CONFIG')
-    cfg_files = cfg.split(':')
+    cfg_files = cfg.split(';')
 
     rules = []
     app.config['fallback'] = None
+    app.config['auth'] = None
     for f in cfg_files:
         auth = try_get_auth(f)
         if auth:
             app.config['auth'] = auth
-
         r = try_get_rules(f)
         if r:
             rules += r[0]
@@ -108,7 +100,7 @@ def create_app(config=None):
 
     @app.route('/', methods=['GET', 'POST'])
     def index():
-        # init()
+            # init()
         if flask.request.method == 'POST':
             ev = flask.request.headers['X-GitHub-Event']
 
@@ -126,7 +118,3 @@ def create_app(config=None):
             return flask.render_template('index.html', rules=rules, user=user, issues=issues, fallback=fallback)
 
     return app
-
-
-if __name__ == '__main__':
-    cli.run()

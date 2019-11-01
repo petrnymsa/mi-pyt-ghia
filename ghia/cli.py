@@ -1,12 +1,14 @@
 import click
-import configreader
+import ghia.configreader as configreader
 import re
 import os
 
-from assigner import GitHubIssueAssigner
+from .assigner import GitHubIssueAssigner
 
 
 def validate_reposlug(ctx, param, value):
+    # if value is None:
+    #    raise click.MissingParameter('REPOSLUG')
     m = re.match('^[a-zA-Z,-]+/[a-zA-Z,-]+$', value)
     if m is None:
         raise click.BadParameter(f'not in owner/repository format')
@@ -35,13 +37,13 @@ def validate_config_rules(ctx, param, value):
         raise click.BadParameter('incorrect configuration format')
 
 
-@click.command()
+@click.command('ghia')
+@click.argument('reposlug', callback=validate_reposlug)
 @click.option('-s', '--strategy', type=click.Choice(['append', 'set', 'change'], case_sensitive=False), default='append', show_default=True, help='How to handle assignment collisions.')
 @click.option('-a', '--config-auth', callback=validate_config_auth, metavar='FILENAME', required=True, help='File with authorization configuration.')
 @click.option('-r', '--config-rules', callback=validate_config_rules, metavar='FILENAME', required=True, help='File with assignment rules configuration.')
 @click.option('-d', '--dry-run', is_flag=True, default=False, help='Run without making any changes.')
-@click.argument('reposlug', callback=validate_reposlug)
-def run(dry_run, strategy, config_auth, config_rules, reposlug):
+def run(reposlug, dry_run, strategy, config_auth, config_rules):
     '''CLI tool for automatic issue assigning of GitHub issues'''
     (rules, fallback) = config_rules
     ghia = GitHubIssueAssigner(config_auth, reposlug, strategy)

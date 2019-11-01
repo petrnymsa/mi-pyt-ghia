@@ -1,8 +1,8 @@
 import requests
 import click
 import json
-from issue import *
-from rule import Rule, RuleSet
+import ghia.issue as iss
+from .rule import Rule, RuleSet
 
 
 class GitHubIssueAssigner:
@@ -22,7 +22,7 @@ class GitHubIssueAssigner:
         loaded_issues = json.loads(response)
 
         for json_issue in loaded_issues:
-            self.issues.append(Issue.from_json(json_issue))
+            self.issues.append(iss.Issue.from_json(json_issue))
 
     def load_issues(self):
         try:
@@ -45,7 +45,7 @@ class GitHubIssueAssigner:
                 f': Could not list issues for repository {self.repo}', err=True)
             exit(10)
 
-    def patch_issue(self, issue: Issue):
+    def patch_issue(self, issue: iss.Issue):
         try:
             encoded = json.dumps(issue.patched_dict())
             r = self.session.patch(
@@ -55,7 +55,7 @@ class GitHubIssueAssigner:
         except:
             return False
 
-    def apply_strategy(self, issue: Issue, owners, fallback):
+    def apply_strategy(self, issue: iss.Issue, owners, fallback):
         if self.strategy == 'append':
             return issue.append(owners)
         elif self.strategy == 'set':
@@ -65,14 +65,14 @@ class GitHubIssueAssigner:
         else:
             raise Exception(f'Unknown strategy {self.strategy}')
 
-    def check_fallback(self, issue: Issue, fallback):
+    def check_fallback(self, issue: iss.Issue, fallback):
          # apply fallback if needed
         if not issue.assignees and fallback is not None:
             return issue.apply_label(fallback)
         return []
 
     def has_changes(self, changes):
-        return any(x.change_type != CHANGE_REMAIN for x in changes)
+        return any(x.change_type != iss.CHANGE_REMAIN for x in changes)
 
     def proces_issues(self, rules, fallback, dry_run: bool):
         for issue in self.issues:
@@ -90,8 +90,8 @@ class GitHubIssueAssigner:
             changes.sort(key=lambda x: x.name.lower())
 
             if not dry_run and self.has_changes(changes) and not self.patch_issue(issue):
-                changes = [IssueChange(
-                    CHANGE_ERROR, f'Could not update issue {self.repo}#{issue.number}')]
+                changes = [iss.IssueChange(
+                    iss.CHANGE_ERROR, f'Could not update issue {self.repo}#{issue.number}')]
 
             self.print_result(issue.number, issue.url, changes)
 
