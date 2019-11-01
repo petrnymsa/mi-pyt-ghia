@@ -7,7 +7,7 @@ with open('README') as f:
 
 setup(
     name='ghia_nymsapet',
-    version='0.1.1',
+    version='0.1.3',
     description='GitHub issue assigner',
     long_description=long_description,
     author='Petr Nymsa',
@@ -32,5 +32,6 @@ setup(
         ],
     },
     install_requires=['Flask', 'click>=6', 'requests'],
+    include_package_data=True,
     zip_safe=False,
 )
