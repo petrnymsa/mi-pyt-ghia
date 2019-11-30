@@ -32,6 +32,15 @@ class IssueChange:
         else:
             click.secho(f'   {self.change_type}', fg=self.color, nl=False)
             click.echo(f' {self.name}')
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, IssueChange):
+            return self.name == other.name and self.change_type == other.change_type
+        return NotImplemented
+
+    def __str__(self):
+        return f'{self.change_type} {self.name}'
 # --------------------------------------------------------------
 
 
@@ -81,8 +90,8 @@ class Issue:
             for a in self.assignees:
                 changes.append(IssueChange(CHANGE_REMAIN, a))
         else:
-            for a in self.assignees:
-                changes.append(IssueChange(CHANGE_REMOVE, a))
+            # for a in self.assignees:
+            #     changes.append(IssueChange(CHANGE_REMOVE, a))
             self.assignees = []
             for name in names:
                 self.assignees.append(name)
@@ -109,3 +118,14 @@ class Issue:
             map(lambda x: x['login'], json_data['assignees']))
         return Issue(
             json_data['number'], json_data['html_url'], json_data['title'], json_data['body'], labels, assignees)
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, Issue):
+            return self.title == other.title \
+                and self.number == other.number \
+                and self.url == other.url \
+                and self.body == other.body \
+                and self.labels == other.labels \
+                and self.assignees == other.assignees
+        return NotImplemented
