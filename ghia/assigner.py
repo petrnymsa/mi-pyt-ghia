@@ -11,14 +11,14 @@ class GitHubIssueAssigner:
         self.token = token
         self.repo = repo
         self.session = requests.Session()
-        self.session.auth = self.req_token_auth
+        self.session.auth = self._req_token_auth
         self.issues = []
 
-    def req_token_auth(self, req):
+    def _req_token_auth(self, req):
         req.headers['Authorization'] = f'token {self.token}'
         return req
 
-    def parse_issues(self, response):
+    def _parse_issues(self, response):
         loaded_issues = json.loads(response)
 
         for json_issue in loaded_issues:
@@ -32,13 +32,13 @@ class GitHubIssueAssigner:
             r.raise_for_status()
 
             while 'next' in r.links:
-                self.parse_issues(r.text)
+                self._parse_issues(r.text)
 
                 url = r.links['next']['url']
                 r = self.session.get(url)
                 r.raise_for_status()
 
-            self.parse_issues(r.text)
+            self._parse_issues(r.text)
         except:
             click.secho('ERROR', fg='red', bold=True, nl=False, err=True)
             click.echo(
