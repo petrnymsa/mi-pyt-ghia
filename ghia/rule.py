@@ -24,6 +24,12 @@ class Rule:
 
     def __str__(self):
         return f'{self.scope}={self.pattern}'
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, Rule):
+            return self.scope == other.scope and self.pattern == other.pattern
+        return NotImplemented
 # --------------------------------------------------------------
 
 
@@ -47,3 +53,9 @@ class RuleSet:
             s += r.scope + ':' + r.pattern + ';'
         s += ' }'
         return s
+
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, RuleSet):
+            return self.rules == other.rules and self.owner == other.owner
+        return NotImplemented

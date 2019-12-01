@@ -45,7 +45,7 @@ def process_issue_post(req):
 
     gh = GitHubIssueAssigner(auth[0], repo, 'append')
     gh.issues = [issue]
-    gh.proces_issues(
+    gh.process(
         flask.current_app.config['rules'], flask.current_app.config['fallback'], False)
     return '', 201
 

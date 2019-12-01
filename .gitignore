@@ -7,3 +7,4 @@ upload.ps1
 fix-setup.sh
 ghia_nymsapet.egg-info/
 dist/
+.idea/

@@ -48,4 +48,4 @@ def run(reposlug, dry_run, strategy, config_auth, config_rules):
     (rules, fallback) = config_rules
     ghia = GitHubIssueAssigner(config_auth, reposlug, strategy)
     ghia.load_issues()
-    ghia.proces_issues(rules, fallback, dry_run)
+    ghia.process(rules, fallback, dry_run)
